@@ -27,10 +27,12 @@ def addTrigguer(trigguer: str, func, *args):
 
 
 class info:
+    HEAD: str
     USER: str
     MESSAGE: str
     isGroup: bool
     groupParticipant: str
+    headers: list[list[2]]
 
 
 def reciveInfo(client: socket.socket):
@@ -40,16 +42,28 @@ def reciveInfo(client: socket.socket):
             DATA = client.recv(1024*8).decode('utf8')
             #print(type(DATA), DATA)
             obj = ""
+            head = ""
+            headers = []
             for i in DATA.splitlines():
                 if i.startswith('{'):
                     obj = i
                     break
+                elif i.startswith("POST "):
+                    i = i.split(' ')
+                    head = i[1]
+                elif i == "\n" or i=="":
+                    continue
+                else:
+                    i = i.split(': ')
+                    headers.append([i[0], i[1]])
             obj = json.loads(obj)  # Carga el objeto JSON
             inf = info()
+            inf.HEAD = head
             inf.USER = obj["query"]["sender"]
             inf.MESSAGE = obj["query"]["message"]
             inf.isGroup = obj["query"]["isGroup"]
             inf.groupParticipant = obj["query"]["groupParticipant"]
+            inf.HEADERS = headers
 
             for i in trigguers:
                 # Eschucha los comandos del cliente y ajusta los messages de respuesta en base a ellos...
