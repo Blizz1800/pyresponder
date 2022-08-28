@@ -20,7 +20,7 @@ def addTrigguer(trigguer: str, func, *args):
             '''
     if trigguer is None or func is None:
         raise Exception('`trigguer` and `func` must be specified...')
-    if (not trigguer.startswith("/")):
+    if (not trigguer.startswith("/") and trigguer != "*"):
         trigguer = "/" + trigguer
     trigguers.append({"key": trigguer, "action": func, "args": args})
     print(f"Trigger [{trigguer}] added!!")
@@ -64,15 +64,26 @@ def reciveInfo(client: socket.socket):
             inf.isGroup = obj["query"]["isGroup"]
             inf.groupParticipant = obj["query"]["groupParticipant"]
             inf.HEADERS = headers
-
+            trigguered = False
             for i in trigguers:
                 # Eschucha los comandos del cliente y ajusta los messages de respuesta en base a ellos...
+                if i["key"] == "*":
+                    continue
                 if obj["query"]["message"].split(' ')[0] == i["key"]:
+                    trigguered = True
                     if i["args"] != ():
                         i["action"](inf, i["args"])
                     else:
                         i["action"](inf)
                     break
+                if not trigguered:
+                    for t in trigguers:
+                        if t["key"] == "*":
+                            if i["args"] != ():
+                                t["action"](inf, i["args"])
+                            else:
+                                t["action"](inf)
+                            break
             responseBase = {"replies": messages}
             data = str(responseBase)
             # print(data)
@@ -120,9 +131,12 @@ def defaultStart(info: info, args: tuple[str, ] = ["Bienvenido {0}, esto es un m
         txt = i.format(f"**{info.USER}**")
         messages.append({"message": txt})
 
+def allResp(inf):
+    addResponse("Has dicho: \n\"{0}\"".format(inf.MESSAGE))
 
 if __name__ == '__main__':
     global gAddress
     gAddress = ("0.0.0.0", 8000)
     addTrigguer("start", defaultStart)
+    addTrigguer("*", allResp)
     server_start(gAddress)
